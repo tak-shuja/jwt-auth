@@ -6,6 +6,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      maxLength: 50,
     },
     username: {
       type: String,
@@ -13,6 +14,7 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       unique: true,
       trim: true,
+      match: /^[a-z0-9_]{3,20}$/,
     },
 
     password: {
@@ -20,9 +22,10 @@ const userSchema = new mongoose.Schema(
       required: true,
       minlength: 6,
       select: false,
+      maxLength: 100,
     },
   },
-  { timestamps: true },
+  { timestamps: true, versionKey: false },
 );
 
 export const User = mongoose.model("User", userSchema);
