@@ -1,8 +1,7 @@
-import { hashToken } from "../../../collab-todo/backend/utils/refreshToken.js";
 import { RefreshToken } from "../models/refreshToken.model.js";
 import { User } from "../models/user.model.js";
 import { APIError } from "../utils/APIError.js";
-import { createToken, verifyToken } from "../utils/jwt.js";
+import { createToken, hashToken, verifyToken } from "../utils/jwt.js";
 import { hashPassword, verifyPasswordHash } from "../utils/password.js";
 
 /**
