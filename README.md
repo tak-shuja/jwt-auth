@@ -1,19 +1,62 @@
 # Authentication System (Node.js + MongoDB)
 
-This project is a basic authentication system built using Node.js, Express, and MongoDB. It uses JWT for authentication and implements refresh token rotation with security practices.
+This project is a JWT-based authentication system built using Node.js, Express, and MongoDB. It implements access and refresh tokens with rotation, revocation, and basic security practices.
 
 ---
 
 ## Features
 
 - User registration and login
-- Password hashing
-- Access token and refresh token system
-- Refresh token rotation
-- Token revocation
-- Logout functionality
-- Cookies for storing tokens
-- Automatic cleanup of expired tokens using TTL
+- Password hashing using bcrypt
+- Access token (short-lived)
+- Refresh token (long-lived)
+- Refresh token rotation (single-use)
+- Token revocation (`isRevoked`)
+- Logout functionality (idempotent)
+- Cookie-based authentication
+- Automatic cleanup of expired tokens using MongoDB TTL
+
+---
+
+## Project Structure
+
+```
+
+src/
+controllers/     # Handles HTTP requests and responses
+services/        # Business logic (auth, token rotation)
+models/          # Mongoose schemas
+routes/          # Route definitions
+middleware/      # Auth middleware
+utils/           # Helpers (JWT, cookies, hashing, DB, etc.)
+
+```
+
+---
+
+## API Endpoints
+
+### Auth
+
+- **POST /auth/register**
+  - Creates a new user
+
+- **POST /auth/login**
+  - Logs in user and sets cookies
+
+- **POST /auth/refresh**
+  - Rotates refresh token and issues new tokens
+
+- **POST /auth/logout**
+  - Clears cookies and revokes token
+
+---
+
+### User
+
+- **GET /users/me**
+  - Returns current user data
+  - Requires authentication
 
 ---
 
@@ -24,23 +67,23 @@ This project is a basic authentication system built using Node.js, Express, and 
 - User sends username and password
 - Server validates credentials
 - If valid:
-  - Access token is created (short-lived)
-  - Refresh token is created (long-lived)
-  - Refresh token is stored in database (hashed)
-  - Both tokens are sent as cookies
+  - Access token is created (15 min)
+  - Refresh token is created (7 days)
+  - Refresh token is hashed and stored in DB
+  - Tokens are sent via HTTP-only cookies
 
 ---
 
-### Refresh Token
+### Refresh Token (Rotation)
 
 - Client sends refresh token from cookies
 - Server:
-  - Verifies the token
-  - Checks database for matching hashed token
-  - Revokes the old token
-  - Creates a new refresh token
-  - Stores new token in database
-  - Sends new tokens in cookies
+  - Verifies token
+  - Hashes and finds it in DB
+  - Atomically revokes old token
+  - Creates new refresh token
+  - Stores new hashed token
+  - Sends new tokens via cookies
 
 - If token is invalid or reused:
   - All tokens for that user are deleted
@@ -49,8 +92,8 @@ This project is a basic authentication system built using Node.js, Express, and 
 
 ### Logout
 
-- Server reads refresh token (if present)
-- Marks it as revoked in database (if valid)
+- Reads refresh token (if present)
+- Revokes token in DB (best effort)
 - Clears cookies
 - Always returns success
 
@@ -61,17 +104,30 @@ This project is a basic authentication system built using Node.js, Express, and 
 ### User
 
 - name
-- username (unique, lowercase)
-- password (hashed, not selected by default)
+- username (unique, lowercase, validated)
+- password (hashed, hidden using `select: false`)
+
+---
 
 ### RefreshToken
 
-- userId
-- tokenHash
-- expiresAt
+- userId (reference to User)
+- tokenHash (hashed token)
+- expiresAt (with TTL index)
 - isRevoked
 
-Expired tokens are automatically deleted using a TTL index.
+Expired tokens are automatically deleted using MongoDB TTL.
+
+---
+
+## Security Notes
+
+- Refresh tokens are stored as hashes
+- Refresh tokens are single-use (rotation)
+- Reuse detection invalidates all sessions
+- Cookies are HTTP-only
+- Passwords are hashed with bcrypt
+- Sensitive fields are excluded from queries
 
 ---
 
@@ -85,26 +141,54 @@ Expired tokens are automatically deleted using a TTL index.
 
 ---
 
+## Setup
+
+1. Clone the repository
+
+2. Install dependencies:
+
+```
+
+npm install
+
+```
+
+3. Create a `.env` file:
+
+```
+
+PORT=your_port
+MONGODB_URL=your_mongodb_url
+JWT_SECRET=your_secret
+
+```
+
+4. Run the server:
+
+```
+
+npm run dev
+
+```
+
+---
+
 ## Notes
 
-- Refresh tokens are stored as hashes for security
-- Services are separated from controllers
 - Controllers handle HTTP logic
 - Services handle business logic
+- Middleware is used for protected routes
+- Cookies are used instead of local storage
 
 ---
 
 ## Possible Improvements
 
-- Add validation for inputs
-- Add rate limiting
-- Add email verification
-- Add session/device tracking
-- Add logging
+- Rate limiting
+- Email verification
 
 ---
 
-## Setup
+## License
 
-1. Clone the repository
-2. Install dependencies:
+MIT

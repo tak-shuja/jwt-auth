@@ -21,5 +21,3 @@ export const getCurrentUser = async (req, res) => {
     });
   }
 };
-
-// aayiye bahaar ko hum baant le
